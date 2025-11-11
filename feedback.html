@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback Admin - Poker Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 40px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .login-container h1 {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .login-container input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            direction: ltr;
+            text-align: left;
+        }
+        .login-container button {
+            width: 100%;
+            padding: 12px;
+            background: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .login-container button:hover {
+            background: #27ae60;
+        }
+        .error {
+            color: #e74c3c;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .feedback-container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+        .feedback-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .feedback-item {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .feedback-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+        .feedback-type {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .type-bug {
+            background: #fee;
+            color: #c00;
+        }
+        .type-feature {
+            background: #ffc;
+            color: #840;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .status-new {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        .status-read {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        .status-resolved {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+        .feedback-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .feedback-description {
+            margin-bottom: 15px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        .feedback-meta {
+            font-size: 14px;
+            color: #666;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+        .feedback-meta div {
+            margin-bottom: 5px;
+        }
+        .action-buttons {
+            margin-top: 15px;
+        }
+        .action-buttons button {
+            margin-left: 10px;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-read {
+            background: #ff9800;
+            color: white;
+        }
+        .btn-resolved {
+            background: #4caf50;
+            color: white;
+        }
+        .btn-logout {
+            background: #f44336;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div id="login-screen" class="login-container">
+        <h1>🔒 Admin Login</h1>
+        <div id="error-message" class="error" style="display: none;"></div>
+        <input type="password" id="password-input" placeholder="Enter password" autocomplete="off">
+        <button onclick="login()">Login</button>
+    </div>
+
+    <div id="feedback-screen" style="display: none;" class="feedback-container">
+        <div class="feedback-header">
+            <h1>📝 Feedback Admin</h1>
+            <button class="btn-logout" onclick="logout()">Logout</button>
+        </div>
+        <div id="feedback-list" class="loading">Loading feedback...</div>
+    </div>
+
+    <!-- Firebase SDK from CDN -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyC7J9gr-CEU2CcKp-8V8eHyhDc9Ed2tGmg",
+            projectId: "poker-3d4b0",
+            storageBucket: "poker-3d4b0.firebasestorage.app",
+            appId: "1:414527530278:ios:88426b47a6a308a1b70de7"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Password (hardcoded)
+        const ADMIN_PASSWORD = "omersav143";
+
+        // Check if already logged in
+        if (localStorage.getItem('feedbackAdminAuth') === 'true') {
+            showFeedbackScreen();
+        }
+
+        function login() {
+            const password = document.getElementById('password-input').value;
+            const errorMsg = document.getElementById('error-message');
+
+            if (password === ADMIN_PASSWORD) {
+                localStorage.setItem('feedbackAdminAuth', 'true');
+                errorMsg.style.display = 'none';
+                showFeedbackScreen();
+            } else {
+                errorMsg.textContent = 'סיסמה שגויה';
+                errorMsg.style.display = 'block';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('feedbackAdminAuth');
+            document.getElementById('login-screen').style.display = 'block';
+            document.getElementById('feedback-screen').style.display = 'none';
+            document.getElementById('password-input').value = '';
+        }
+
+        function showFeedbackScreen() {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('feedback-screen').style.display = 'block';
+            loadFeedback();
+        }
+
+        async function loadFeedback() {
+            const feedbackList = document.getElementById('feedback-list');
+            feedbackList.innerHTML = '<div class="loading">Loading feedback...</div>';
+
+            try {
+                const snapshot = await db.collection('feedback')
+                    .orderBy('createdAt', 'desc')
+                    .get();
+
+                if (snapshot.empty) {
+                    feedbackList.innerHTML = '<div style="text-align: center; padding: 50px; color: #999;">אין פידבקים עדיין</div>';
+                    return;
+                }
+
+                feedbackList.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    feedbackList.innerHTML += createFeedbackHTML(doc.id, data);
+                });
+            } catch (error) {
+                console.error('Error loading feedback:', error);
+                feedbackList.innerHTML = '<div class="error">שגיאה בטעינת פידבקים: ' + error.message + '</div>';
+            }
+        }
+
+        function createFeedbackHTML(id, data) {
+            const typeClass = data.type === 'דיווח על באג' ? 'type-bug' : 'type-feature';
+            const statusClass = `status-${data.status || 'new'}`;
+            const statusText = {
+                'new': 'חדש',
+                'read': 'נקרא',
+                'resolved': 'טופל'
+            }[data.status || 'new'];
+
+            const date = data.createdAt ? new Date(data.createdAt.seconds * 1000).toLocaleString('he-IL') : 'Unknown';
+
+            return `
+                <div class="feedback-item">
+                    <div class="feedback-header-row">
+                        <div>
+                            <span class="feedback-type ${typeClass}">${data.type}</span>
+                            <span class="status-badge ${statusClass}">${statusText}</span>
+                        </div>
+                        <div style="color: #999; font-size: 14px;">${date}</div>
+                    </div>
+                    <div class="feedback-title">${data.title}</div>
+                    <div class="feedback-description">${data.description}</div>
+                    <div class="feedback-meta">
+                        <div><strong>משתמש:</strong> ${data.username} (${data.email})</div>
+                        <div><strong>User ID:</strong> ${data.userId}</div>
+                        <div><strong>מכשיר:</strong> ${data.deviceInfo.deviceModel}</div>
+                        <div><strong>iOS:</strong> ${data.deviceInfo.iosVersion} | <strong>App:</strong> ${data.deviceInfo.appVersion} (Build ${data.deviceInfo.buildNumber})</div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn-read" onclick="updateStatus('${id}', 'read')">סמן כנקרא</button>
+                        <button class="btn-resolved" onclick="updateStatus('${id}', 'resolved')">סמן כטופל</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function updateStatus(feedbackId, newStatus) {
+            try {
+                await db.collection('feedback').doc(feedbackId).update({
+                    status: newStatus
+                });
+                loadFeedback(); // Reload the list
+            } catch (error) {
+                console.error('Error updating status:', error);
+                alert('שגיאה בעדכון הסטטוס: ' + error.message);
+            }
+        }
+
+        // Enter key to login
+        document.getElementById('password-input').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                login();
+            }
+        });
+    </script>
+</body>
+</html>
